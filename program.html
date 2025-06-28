@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Адаптивный Тетрис</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            padding: 15px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .game-title {
+            font-size: 2.2rem;
+            color: #fff;
+            text-shadow: 0 0 10px #e94560;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .game-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .main-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .game-board-container {
+            position: relative;
+            background-color: #0f3460;
+            border: 3px solid #e94560;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.3);
+            overflow: hidden;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-rows: repeat(20, 1fr);
+            grid-template-columns: repeat(10, 1fr);
+            gap: 1px;
+            background-color: rgba(15, 52, 96, 0.7);
+        }
+        
+        .cell {
+            aspect-ratio: 1/1;
+            background-color: rgba(15, 52, 96, 0.7);
+            border-radius: 2px;
+            transition: background-color 0.1s ease;
+        }
+        
+        .filled {
+            border-radius: 4px;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 150px;
+            flex: 1;
+        }
+        
+        .panel {
+            background-color: #0f3460;
+            border: 3px solid #e94560;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.3);
+        }
+        
+        .panel-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #f1f1f1;
+            text-shadow: 0 0 3px #e94560;
+        }
+        
+        .next-piece-board {
+            display: grid;
+            grid-template-rows: repeat(4, 1fr);
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            background-color: rgba(15, 52, 96, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .next-cell {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+        
+        .info-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+        }
+        
+        .info-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .info-title {
+            font-size: 0.9rem;
+            color: #a9a9a9;
+            margin-bottom: 3px;
+        }
+        
+        .info-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 3px #e94560;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, #e94560, #d32f4e);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+            background: linear-gradient(to right, #d32f4e, #c2185b);
+        }
+        
+        .instructions {
+            padding: 15px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        /* Цвета фигур */
+        .i { background-color: #00f0f0; }
+        .j { background-color: #0000f0; }
+        .l { background-color: #f0a000; }
+        .o { background-color: #f0f000; }
+        .s { background-color: #00f000; }
+        .t { background-color: #a000f0; }
+        .z { background-color: #f00000; }
+        
+        /* Панель управления для мобильных */
+        .mobile-controls {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 10px;
+            padding: 15px;
+        }
+        
+        .mobile-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60px;
+            background: rgba(233, 69, 96, 0.3);
+            border: 2px solid #e94560;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            color: white;
+            user-select: none;
+        }
+        
+        .mobile-btn:active {
+            background: rgba(233, 69, 96, 0.6);
+        }
+        
+        .rotate-btn {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .left-btn {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .down-btn {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        
+        .right-btn {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .drop-btn {
+            grid-column: 1 / span 3;
+            grid-row: 3;
+            font-size: 1.2rem;
+        }
+        
+        /* Экран Game Over */
+        .game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        
+        .game-over h2 {
+            font-size: 2.2rem;
+            color: #e94560;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.7);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Адаптивные стили */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .game-title {
+                font-size: 1.8rem;
+            }
+            
+            .game-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .panel {
+                flex: 1;
+                min-width: 140px;
+            }
+            
+            .mobile-controls {
+                display: grid;
+            }
+            
+            .instructions {
+                order: 3;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 1.6rem;
+            }
+            
+            .info-value {
+                font-size: 1.5rem;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .mobile-btn {
+                height: 50px;
+                font-size: 1.3rem;
+            }
+            
+            .panel {
+                min-width: 120px;
+                padding: 10px;
+            }
+            
+            .next-piece-board {
+                width: 80px;
+                height: 80px;
+            }
+        }
+        
+        @media (max-height: 700px) and (orientation: landscape) {
+            .container {
+                flex-direction: row;
+                max-width: none;
+                padding: 10px;
+            }
+            
+            .game-header {
+                display: none;
+            }
+            
+            .game-content {
+                flex-direction: row;
+                flex-wrap: nowrap;
+            }
+            
+            .main-area {
+                flex: 2;
+            }
+            
+            .sidebar {
+                flex: 1;
+                max-width: 200px;
+            }
+            
+            .instructions {
+                display: none;
+            }
+            
+            .mobile-controls {
+                max-width: 250px;
+            }
+        }
+        
+        /* Анимации */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">АДАПТИВНЫЙ ТЕТРИС</h1>
+        </div>
+        
+        <div class="game-content">
+            <div class="main-area">
+                <div class="game-board-container">
+                    <div class="game-board" id="board"></div>
+                    <div id="game-over" class="game-over hidden">
+                        <h2>ИГРА ОКОНЧЕНА!</h2>
+                        <p>Ваш счет: <span id="final-score">0</span></p>
+                        <button id="restart-btn">Играть снова</button>
+                    </div>
+                </div>
+                
+                <div class="mobile-controls">
+                    <div class="mobile-btn rotate-btn">↻</div>
+                    <div class="mobile-btn left-btn">←</div>
+                    <div class="mobile-btn down-btn">↓</div>
+                    <div class="mobile-btn right-btn">→</div>
+                    <div class="mobile-btn drop-btn">БЫСТРОЕ ПАДЕНИЕ</div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="panel">
+                    <div class="panel-title">Следующая фигура</div>
+                    <div class="next-piece-board" id="next-piece"></div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">Статистика</div>
+                    <div class="info-container">
+                        <div class="info-box">
+                            <div class="info-title">Счет</div>
+                            <div class="info-value" id="score">0</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-title">Уровень</div>
+                            <div class="info-value" id="level">1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button id="start-btn">Начать игру</button>
+                        <button id="pause-btn">Пауза</button>
+                        <button id="reset-btn">Сброс</button>
+                    </div>
+                </div>
+                
+                <div class="panel instructions">
+                    <h3>Управление</h3>
+                    <ul>
+                        <li><strong>← →</strong> - Движение влево/вправо</li>
+                        <li><strong>↑</strong> - Поворот фигуры</li>
+                        <li><strong>↓</strong> - Ускорение вниз</li>
+                        <li><strong>Пробел</strong> - Мгновенное падение</li>
+                        <li><strong>P</strong> - Пауза</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация игры
+        const COLS = 10;
+        const ROWS = 20;
+        const COLORS = [
+            null,
+            '#00f0f0', // I
+            '#0000f0', // J
+            '#f0a000', // L
+            '#f0f000', // O
+            '#00f000', // S
+            '#a000f0', // T
+            '#f00000'  // Z
+        ];
+        
+        // Фигуры тетриса и их повороты
+        const SHAPES = [
+            [],
+            [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]], // I
+            [[0,0,0], [2,2,2], [0,2,0]], // J
+            [[0,0,0], [3,3,3], [3,0,0]], // L
+            [[0,0,0,0], [0,4,4,0], [0,4,4,0], [0,0,0,0]], // O
+            [[0,0,0], [0,5,5], [5,5,0]], // S
+            [[0,0,0], [0,6,0], [6,6,6]], // T
+            [[0,0,0], [7,7,0], [0,7,7]]  // Z
+        ];
+        
+        // DOM элементы
+        const board = document.getElementById('board');
+        const nextPieceBoard = document.getElementById('next-piece');
+        const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        // Мобильные кнопки
+        const rotateBtn = document.querySelector('.rotate-btn');
+        const leftBtn = document.querySelector('.left-btn');
+        const downBtn = document.querySelector('.down-btn');
+        const rightBtn = document.querySelector('.right-btn');
+        const dropBtn = document.querySelector('.drop-btn');
+        
+        // Игровые переменные
+        let boardMatrix;
+        let currentPiece;
+        let nextPiece;
+        let score = 0;
+        let level = 1;
+        let gameOver = false;
+        let isPaused = false;
+        let dropCounter = 0;
+        let dropInterval = 1000;
+        let lastTime = 0;
+        let requestId;
+        
+        // Инициализация игрового поля
+        function createBoard() {
+            boardMatrix = Array.from({length: ROWS}, () => 
+                Array.from({length: COLS}, () => 0)
+            );
+            
+            // Очистка и создание сетки
+            board.innerHTML = '';
+            board.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+            
+            // Рассчитываем размер ячейки в зависимости от экрана
+            const cellSize = Math.min(
+                Math.floor(window.innerWidth * 0.8 / COLS),
+                Math.floor(window.innerHeight * 0.4)
+            );
+            
+            board.style.gridTemplateRows = `repeat(${ROWS}, ${cellSize}px)`;
+            
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = y;
+                    cell.dataset.col = x;
+                    board.appendChild(cell);
+                }
+            }
+        }
+        
+        // Инициализация поля следующей фигуры
+        function createNextPieceBoard() {
+            nextPieceBoard.innerHTML = '';
+            
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('next-cell');
+                    cell.dataset.row = y;
+                    cell.dataset.col = x;
+                    nextPieceBoard.appendChild(cell);
+                }
+            }
+        }
+        
+        // Класс фигуры
+        class Piece {
+            constructor() {
+                const rand = Math.floor(Math.random() * 7) + 1;
+                this.type = rand;
+                this.shape = SHAPES[rand];
+                this.position = {x: Math.floor(COLS / 2) - 1, y: 0};
+                this.color = COLORS[rand];
+            }
+            
+            // Поворот фигуры
+            rotate() {
+                const N = this.shape.length;
+                const rotated = Array.from({length: N}, () => Array(N).fill(0));
+                
+                for (let y = 0; y < N; y++) {
+                    for (let x = 0; x < N; x++) {
+                        rotated[x][N - 1 - y] = this.shape[y][x];
+                    }
+                }
+                
+                // Проверка возможности поворота
+                const originalShape = this.shape;
+                this.shape = rotated;
+                if (this.collision()) {
+                    this.shape = originalShape;
+                }
+            }
+            
+            // Проверка столкновений
+            collision() {
+                const N = this.shape.length;
+                
+                for (let y = 0; y < N; y++) {
+                    for (let x = 0; x < N; x++) {
+                        if (this.shape[y][x] !== 0) {
+                            const boardX = this.position.x + x;
+                            const boardY = this.position.y + y;
+                            
+                            if (
+                                boardX < 0 || 
+                                boardX >= COLS || 
+                                boardY >= ROWS ||
+                                (boardY >= 0 && boardMatrix[boardY][boardX] !== 0)
+                            ) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // Создание новой фигуры
+        function createPiece() {
+            currentPiece = nextPiece || new Piece();
+            nextPiece = new Piece();
+            updateNextPieceDisplay();
+            
+            // Проверка на завершение игры
+            if (currentPiece.collision()) {
+                endGame();
+            }
+        }
+        
+        // Обновление отображения следующей фигуры
+        function updateNextPieceDisplay() {
+            const cells = nextPieceBoard.querySelectorAll('.next-cell');
+            cells.forEach(cell => {
+                cell.className = 'next-cell';
+                cell.style.backgroundColor = '';
+            });
+            
+            const N = nextPiece.shape.length;
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    if (nextPiece.shape[y][x] !== 0) {
+                        const cell = nextPieceBoard.querySelector(`[data-row="${y}"][data-col="${x}"]`);
+                        if (cell) {
+                            cell.style.backgroundColor = nextPiece.color;
+                            cell.classList.add(`t${nextPiece.type}`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Фиксация фигуры на поле
+        function lockPiece() {
+            const N = currentPiece.shape.length;
+            
+            for (let y = 0; y < N; y++) {
+                for (let x = 0; x < N; x++) {
+                    if (currentPiece.shape[y][x] !== 0) {
+                        const boardY = currentPiece.position.y + y;
+                        const boardX = currentPiece.position.x + x;
+                        
+                        if (boardY >= 0) {
+                            boardMatrix[boardY][boardX] = currentPiece.type;
+                        }
+                    }
+                }
+            }
+            
+            // Проверка заполненных линий
+            clearLines();
+            createPiece();
+        }
+        
+        // Очистка заполненных линий
+        function clearLines() {
+            let linesCleared = 0;
+            
+            for (let y = ROWS - 1; y >= 0; y--) {
+                let isLineComplete = true;
+                
+                for (let x = 0; x < COLS; x++) {
+                    if (boardMatrix[y][x] === 0) {
+                        isLineComplete = false;
+                        break;
+                    }
+                }
+                
+                if (isLineComplete) {
+                    linesCleared++;
+                    
+                    // Удаление линии
+                    for (let yy = y; yy > 0; yy--) {
+                        for (let x = 0; x < COLS; x++) {
+                            boardMatrix[yy][x] = boardMatrix[yy - 1][x];
+                        }
+                    }
+                    
+                    // Очистка верхней линии
+                    for (let x = 0; x < COLS; x++) {
+                        boardMatrix[0][x] = 0;
+                    }
+                    
+                    // Перемещение вниз
+                    y++;
+                }
+            }
+            
+            // Обновление счета
+            if (linesCleared > 0) {
+                const points = [0, 40, 100, 300, 1200]; // Очки за 0-4 линий
+                score += points[linesCleared] * level;
+                scoreElement.textContent = score;
+                
+                // Обновление уровня
+                level = Math.floor(score / 1000) + 1;
+                levelElement.textContent = level;
+                
+                // Увеличение скорости
+                dropInterval = Math.max(100, 1000 - (level - 1) * 100);
+            }
+        }
+        
+        // Отрисовка игрового поля
+        function drawBoard() {
+            const cells = board.querySelectorAll('.cell');
+            
+            // Очистка поля
+            cells.forEach(cell => {
+                cell.className = 'cell';
+                cell.style.backgroundColor = '';
+            });
+            
+            // Отрисовка зафиксированных фигур
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (boardMatrix[y][x] !== 0) {
+                        const cell = board.querySelector(`[data-row="${y}"][data-col="${x}"]`);
+                        if (cell) {
+                            cell.classList.add('filled');
+                            cell.classList.add(`t${boardMatrix[y][x]}`);
+                            cell.style.backgroundColor = COLORS[boardMatrix[y][x]];
+                        }
+                    }
+                }
+            }
+            
+            // Отрисовка текущей фигуры
+            if (currentPiece) {
+                const N = currentPiece.shape.length;
+                
+                for (let y = 0; y < N; y++) {
+                    for (let x = 0; x < N; x++) {
+                        if (currentPiece.shape[y][x] !== 0) {
+                            const boardY = currentPiece.position.y + y;
+                            const boardX = currentPiece.position.x + x;
+                            
+                            if (boardY >= 0) {
+                                const cell = board.querySelector(`[data-row="${boardY}"][data-col="${boardX}"]`);
+                                if (cell) {
+                                    cell.classList.add('filled');
+                                    cell.classList.add(`t${currentPiece.type}`);
+                                    cell.style.backgroundColor = currentPiece.color;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Движение фигуры вниз
+        function moveDown() {
+            if (gameOver || isPaused) return;
+            
+            currentPiece.position.y++;
+            
+            if (currentPiece.collision()) {
+                currentPiece.position.y--;
+                lockPiece();
+            }
+            
+            dropCounter = 0;
+            drawBoard();
+        }
+        
+        // Движение фигуры влево
+        function moveLeft() {
+            if (gameOver || isPaused) return;
+            
+            currentPiece.position.x--;
+            
+            if (currentPiece.collision()) {
+                currentPiece.position.x++;
+            }
+            
+            drawBoard();
+        }
+        
+        // Движение фигуры вправо
+        function moveRight() {
+            if (gameOver || isPaused) return;
+            
+            currentPiece.position.x++;
+            
+            if (currentPiece.collision()) {
+                currentPiece.position.x--;
+            }
+            
+            drawBoard();
+        }
+        
+        // Мгновенное падение фигуры
+        function hardDrop() {
+            if (gameOver || isPaused) return;
+            
+            while (!currentPiece.collision()) {
+                currentPiece.position.y++;
+            }
+            currentPiece.position.y--;
+            lockPiece();
+            drawBoard();
+        }
+        
+        // Поворот фигуры
+        function rotatePiece() {
+            if (gameOver || isPaused) return;
+            
+            currentPiece.rotate();
+            drawBoard();
+        }
+        
+        // Основной игровой цикл
+        function update(time = 0) {
+            if (gameOver || isPaused) return;
+            
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                moveDown();
+            }
+            
+            requestId = requestAnimationFrame(update);
+        }
+        
+        // Запуск игры
+        function startGame() {
+            if (requestId) {
+                cancelAnimationFrame(requestId);
+            }
+            
+            // Сброс игровых переменных
+            score = 0;
+            level = 1;
+            gameOver = false;
+            isPaused = false;
+            dropInterval = 1000;
+            
+            scoreElement.textContent = score;
+            levelElement.textContent = level;
+            
+            createBoard();
+            createNextPieceBoard();
+            createPiece();
+            drawBoard();
+            
+            gameOverScreen.classList.add('hidden');
+            pauseBtn.textContent = 'Пауза';
+            
+            lastTime = performance.now();
+            dropCounter = 0;
+            update();
+        }
+        
+        // Пауза игры
+        function togglePause() {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Продолжить' : 'Пауза';
+            
+            if (!isPaused && !gameOver) {
+                lastTime = performance.now();
+                update();
+            }
+        }
+        
+        // Завершение игры
+        function endGame() {
+            gameOver = true;
+            finalScoreElement.textContent = score;
+            gameOverScreen.classList.remove('hidden');
+        }
+        
+        // Инициализация игры
+        function init() {
+            createBoard();
+            createNextPieceBoard();
+            
+            // Обработчики кнопок
+            startBtn.addEventListener('click', startGame);
+            pauseBtn.addEventListener('click', togglePause);
+            resetBtn.addEventListener('click', startGame);
+            restartBtn.addEventListener('click', startGame);
+            
+            // Обработчики клавиатуры
+            document.addEventListener('keydown', (event) => {
+                if (gameOver || isPaused) return;
+                
+                switch (event.keyCode) {
+                    case 37: // Стрелка влево
+                        moveLeft();
+                        break;
+                    case 39: // Стрелка вправо
+                        moveRight();
+                        break;
+                    case 40: // Стрелка вниз
+                        moveDown();
+                        break;
+                    case 38: // Стрелка вверх
+                        rotatePiece();
+                        break;
+                    case 32: // Пробел
+                        hardDrop();
+                        break;
+                    case 80: // P
+                        togglePause();
+                        break;
+                }
+            });
+            
+            // Мобильные кнопки
+            rotateBtn.addEventListener('click', rotatePiece);
+            leftBtn.addEventListener('click', moveLeft);
+            downBtn.addEventListener('click', moveDown);
+            rightBtn.addEventListener('click', moveRight);
+            dropBtn.addEventListener('click', hardDrop);
+            
+            // Адаптация при изменении размера экрана
+            window.addEventListener('resize', () => {
+                if (!gameOver) {
+                    createBoard();
+                    drawBoard();
+                }
+            });
+        }
+        
+        // Запуск игры при загрузке страницы
+        window.onload = init;
+    </script>
+</body>
+</html>
